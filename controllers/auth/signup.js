@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const gravatar = require('gravatar');
 
 const { catchAsync } = require('../../utils');
 const User = require('../../models/userModel');
@@ -9,13 +10,23 @@ const signToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, {
 });
 
 exports.signup = catchAsync(async (req, res) => {
-  const newUserData = {
-    ...req.body,
-    subscription: userSubsEnum.DEFAULT,
-  };
-  console.log(newUserData);
+const { email, password, firstName, lastName } = req.body;
+const subscription = userSubsEnum.DEFAULT;
 
-  const newUser = await User.create(newUserData);
+const avatarURL = gravatar.url(email, {
+s: '250',
+r: 'pg',
+d: 'mm',
+});
+
+const newUser = await User.create({
+email,
+password,
+firstName,
+lastName,
+subscription,
+avatarURL,
+});
 
   newUser.password = undefined;
 
