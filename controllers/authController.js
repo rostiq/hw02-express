@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const { catchAsync, AppError } = require('../utils');
+const { catchAsync, AppError, sendEmail } = require('../utils');
 const userSubsEnum = require('../constants/userSubsEnum');
 const User = require('../models/userModel');
 
@@ -64,3 +64,50 @@ exports.current = catchAsync(async (req, res) => {
     },
   });
 });
+
+exports.verifyEmail = async (req, res, next) => {
+  const { verificationToken } = req.params;
+
+  const user = await User.findOne({ verificationToken });
+  if (!user) {
+    return next(new AppError(404, "User not found with verification token"));
+  }
+
+  await User.findByIdAndUpdate(user._id, {
+    verify: true,
+    verificationToken: "",
+  });
+
+  res.status(200).json({
+    status: "success",
+    code: 200,
+    message: "Verification successful",
+  });
+};
+
+exports.resendVerifyEmail = async (req, res, next) => {
+  console.log(req.body)
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    return next(new AppError(404, "User not found"));
+  }
+
+  if (user.verify) {
+    return next(new AppError(400, "User already verify"));
+  }
+
+  const mail = {
+    to: email,
+    subject: "Підтвердження регістрації на сайті",
+    html: `<a href='http://localhost:3000/api/users/verify/${user.verificationToken}' target='_blank'>Натисніть для пітдвердження регістрації'</a>`,
+  };
+
+  await sendEmail(mail);
+
+  res.status(200).json({
+    status: "success",
+    code: 200,
+    message: "Email verify resend",
+  });
+};

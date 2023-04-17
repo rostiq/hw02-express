@@ -8,7 +8,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const user = await User.findOne({ email }).select("+password");
 
-  if (!user) return next(new AppError(401, "Not authorized"));
+  if (!user || !user.verify) return next(new AppError(401, "Not authorized"));
 
   const passwordIsValid = await user.checkPassword(password, user.password);
 
